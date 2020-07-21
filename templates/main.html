@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>pySpeedRunner</title>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.min.js"></script>
+</head>
+<style type="text/css">
+    body {
+        font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+    }
+
+    .timer {
+        background-color: #000000;
+        color: #FFFFFF;
+        max-width: 300px;
+        margin-left: 15px;
+        margin-right: 15px;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+
+    .title {
+        text-align: center;
+    }
+
+    .splits {
+        table-layout: fixed;
+        word-wrap: break-word;
+        width: 100%;
+    }
+
+    .splitBest {
+        text-align: right;
+    }
+
+    .splitNow {
+        text-align: right;
+    }
+
+    .mainTimer {
+        font-family: "Lucida Console", Monaco, monospace;
+        font-size: 16pt;
+        text-align: right;
+    }
+</style>
+<body>
+
+<div class="timer">
+    <div class="title"></div>
+    <div class="goal"></div>
+    <table class="splits"></table>
+    <div class="gamePB"></div>
+    <div class="gameWR"></div>
+    <div class="ctimer"></div>
+</div>
+
+<script type="text/javascript">
+    function timeConvert(timeInSeconds) {
+        var pad = function(num, size) { return ('000' + num).slice(size * -1); },
+        time = parseFloat(timeInSeconds).toFixed(3),
+        hours = Math.floor(time / 60 / 60),
+        minutes = Math.floor(time / 60) % 60,
+        seconds = Math.floor(time - minutes * 60),
+        milliseconds = time.slice(-3);
+
+        if (hours != 0) {
+            hours = hours + ':';
+        }
+        else {
+            hours = "";
+        }
+
+        if (minutes != 0) {
+            minutes = pad(minutes, 2) + ':';
+        }
+        else {
+            minutes = ""
+        }
+
+        return hours + minutes + pad(seconds, 2) + '.' + pad(milliseconds, 2);
+    }
+
+    var targetHost = 'http://localhost:5000';
+    initialTimeURL = targetHost + '/timerInit';
+
+    $.getJSON(initialTimeURL, function currentTimer(info) {
+        var gameTitle = `${info.Game}`
+        var gameGoal = `${info.Goal}`
+        var gameTimePB = `${info.PB}`
+        var gameTimeWR = `${info.WR}`
+        var gameSplits = ""
+        jQuery(info.Splits).each(function(i, item){
+            gameSplits = gameSplits + `<tr><td class="splitName" id="${item.Title}">${item.Title}</td><td class="splitBest" id="${item.Title}">${item.Best}</div><div class="splitNow" id="${item.Title}"></div></tr>`
+        });
+
+
+        $(".title").html(gameTitle);
+        $(".goal").html(gameGoal);
+        $(".gamePB").html(gameTimePB);
+        $(".gameWR").html(gameTimeWR);
+        $(".splits").html(gameSplits);
+    });
+
+    var socket = io.connect(targetHost)
+    socket.emit('timer')
+    socket.on('timer', function(ct) {
+        console.log(ct.data)
+        $(".ctimer").html(`<div class="mainTimer">${timeConvert(ct.data)}</div>`);
+    });
+</script>
+
+
+
+</body>
+</html>
