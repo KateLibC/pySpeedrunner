@@ -10,6 +10,7 @@ so I have motivation to keep working on it.
 ## Plans
 
 * Incorporate splits.io into it for new split data sources
+* Timer with checks against NTP or using local system time against process time
 * Use LibUSB/HIDAPI to interact with HID-based foot pedals
 * Create a control panel for use via mobile phones
 * Allow for custom CSS based for individual splits files
