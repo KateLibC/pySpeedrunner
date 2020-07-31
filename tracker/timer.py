@@ -12,73 +12,108 @@ Offline time tracking
 from time import sleep
 from random import randint
 
-from timing import timer
+from tracker import timer
 
 
-t = timer()
+t = timer(blocks=10)
 t.startTimer()
-for x in range(0, randint(10,99)):
-    sleep(float(f'0.{randint(1,11)}'))
-    t.addToBlocks()
-    t.timeBlocks
+for x in range(0, 9):
+    sleep(float(f'{randint(1,11)}'))
+    t.nextTimer()
+    t.showElapsedBlocks()
+
 '''
 
 class timer(object):
-    def __init__(self):
-        self.resetTimer()
+    def __init__(self, blocks):
+        self.allocateBlocks(n=blocks)
 
-    def addToBlocks(self, start=False, blockType='split'):
-        t = self.currentEpoch()
-        if not start:
-            n = self.currentTime(current=t)
-            self.timeBlocks.append(n)
-        else:
-            self.timeBlocks.append(0)
-        self.epochTimeBlocks.append(t)
-
-    def removeFromBlocks(self):
-        self.timeBlocks = self.timeBlocks[:-1]
-        self.epochTimeBlocks = self.epochTimeBlocks[:-1]
-
-    def currentEpoch(self):
+    def globalEpoch(self):
         return time.time()
 
-    def currentTime(self, current=None):
-        if current is None:
-            current = self.currentEpoch()
-        t = current - self.lastTimeBlockEpoch()
-        return t
-
-    def currentElapsedTime(self):
-        t1 = self.firstTimeBlock()
-        if t1 is 0:
-            return 0
-        return self.currentEpoch() - t1
-
-    def firstTimeBlock(self):
-        if len(self.epochTimeBlocks) is 0:
-            t = 0
+    def currentAddBlock(self, nextTimer=False):
+        t = self.globalEpoch()
+        block = self.showActiveBlock()
+        bn = self.showNextBlock()
+        if len(self.blocks[block]) is 1:
+            self.blocks[block].append(t)
         else:
-            t = self.epochTimeBlocks[0]
-        return t
+            self.blocks[block] = [t]
+        if nextTimer and bn is not None:
+            self.blocks[bn] = [t]
 
-    def lastTimeBlockEpoch(self):
-        return self.epochTimeBlocks[-1]
+    def currentDelBlock(self):
+        bn = self.showActiveBlock()
+        bp = self.showPreviousBlock()
+        self.blocks[bn] = []
+        if bp is not 0:
+            self.blocks[bp] = [self.blocks[bp][0]]
 
-    def lastTimeBlock(self):
-        return self.timeBlocks[-1]
+    def allocateBlocks(self, n=None):
+        if n is None:
+            n = len(self.blocks.keys())
+        self.blocks = dict(enumerate([[] for x in range(0,n)]))
+
+    def showActiveBlock(self):
+        for block, state in self.showActiveBlocks().items():
+            if state:
+                return block
+        return 0
+
+    def showActiveBlocks(self, n=1):
+        i = {}
+        for block in self.blocks.keys():
+            i[block] = len(self.blocks[block]) is n
+        return i
+
+    def showCompletedBlocks(self):
+        return self.showActiveBlocks(n=2)
+
+    def showElapsedBlocks(self):
+        i = {}
+        for block in self.blocks.keys():
+            if len(self.blocks[block]) is 2:
+                i[block] = self.blocks[block][1] - self.blocks[block][0]
+            else:
+                i[block] = None
+        return i
+
+    def showElapsedTime(self):
+        t = self.globalEpoch()
+        return t - self.showStartTime()
+
+    def showLastBlock(self):
+        k = sorted(self.blocks.keys())[-1]
+        return k
+
+    def showNextBlock(self):
+        block = self.showActiveBlock()
+        if block + 1 is self.showLastBlock():
+            return None
+        return block + 1
+
+    def showPreviousBlock(self):
+        block = self.showActiveBlock()
+        if block is 0:
+            return 0
+        return block - 1
+
+    def showStartTime(self):
+        block = self.showActiveBlock()
+        if block is 0 and len(self.blocks[0]) is 0:
+            return None
+        else:
+            return self.blocks[0][0]
+
+    def currentTimer(self):
+        return self.showElapsedTime()
 
     def startTimer(self):
-        self.resetTimer()
-        t = self.currentEpoch()
-        self.epochTimeBlocks.append(t)
-        self.timeBlocks.append(0)
+        self.allocateBlocks()
+        self.currentAddBlock()
 
-    def endTimer(self):
-        self.addToBlocks()
-        self.epochTimeBlocks = tuple(self.epochTimeBlocks)
-        self.timeBlocks = tuple(self.timeBlocks)
+    def nextTimer(self):
+        self.currentAddBlock(nextTimer=True)
 
-    def resetTimer(self):
-        self.epochTimeBlocks = []
-        self.timeBlocks = []
+    def reverseTimer(self):
+        self.currentDelBlock()
